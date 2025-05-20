@@ -1,4 +1,4 @@
-name: publish
+name: Publish
 
 on:
     workflow_dispatch:
@@ -6,7 +6,36 @@ on:
         - cron: "0 0 1 * *"
 
 jobs:
+    check:
+        runs-on: ubuntu-latest
+        outputs:
+            SHOULD_BUILD: ${{ steps.should_build.outputs.SHOULD_BUILD }}
+            NGINX_TAG: ${{ steps.should_build.outputs.NGINX_TAG }}
+            RTMP_TAG: ${{ steps.should_build.outputs.RTMP_TAG }}
+            TAG: ${{ steps.should_build.outputs.TAG }}
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Should build?
+              id: should_build
+              run: |
+                  nginx_tag=$(gh api repos/nginx/nginx/releases/latest -q ".tag_name[8:]")
+                  rtmp_tag=$(gh api repos/winshining/nginx-http-flv-module/releases/latest -q ".tag_name[1:]")
+                  tag=$(gh api users/$GITHUB_REPOSITORY_OWNER/packages/container/nginx-rtmp-docker/versions -q ".[0].metadata.container.tags.[0]")
+                  if [ "$nginx_tag-$rtmp_tag" != "$tag" ]; then
+                    echo "SHOULD_BUILD=1" >> $GITHUB_OUPUT
+                    echo "NGINX_TAG=$nginx_tag" >> $GITHUB_OUTPUT
+                    echo "RTMP_TAG=$rtmp_tag" >> $GITHUB_OUTPUT
+                    echo "TAG=$nginx_tag-$rtmp_tag" >> $GITHUB_OUTPUT
+                  fi
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     build-and-push-image:
+        needs: check
+        if: needs.check.outputs.SHOULD_BUILD == 1
         runs-on: ubuntu-latest
 
         permissions:
@@ -37,9 +66,16 @@ jobs:
                   file: ./Dockerfile
                   platforms: linux/amd64,linux/arm64
                   push: true
-                  tags: ghcr.io/${{ github.repository }}:latest
-            
+                  provenance: false
+                  build-args: |
+                      NGINX_VERSION=${{ needs.check.outputs.NGINX_TAG }}
+                      RTMP_VERSION=${{ needs.check.outputs.RTMP_TAG }}
+                  tags: |
+                      ghcr.io/${{ github.repository }}:latest
+                      ghcr.io${{ github.repository }}:${{ needs.check.outputs.TAG }}
+
             - name: ghcr.io cleanup
               uses: dataaxiom/ghcr-cleanup-action@v1
               with:
+                  keep-n-tagged: 3
                   token: ${{ secrets.GITHUB_TOKEN }}

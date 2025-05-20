@@ -1,10 +1,6 @@
-<div align=center>
-
 # nginx-rtmp-docker
 
 ## Docker image for NGINX compiled with [nginx-http-flv-module](https://github.com/winshining/nginx-http-flv-module)
-
-</div>
 
 ## Usage
 
