@@ -23,7 +23,7 @@ jobs:
               run: |
                   nginx_tag=$(gh api repos/nginx/nginx/releases/latest -q ".tag_name[8:]")
                   rtmp_tag=$(gh api repos/winshining/nginx-http-flv-module/releases/latest -q ".tag_name[1:]")
-                  tag=$(gh api users/$GITHUB_REPOSITORY_OWNER/packages/container/nginx-rtmp-docker/versions -q ".[0].metadata.container.tags.[0]" 2>/dev/null)
+                  tag=$(gh api users/$GITHUB_REPOSITORY_OWNER/packages/container/nginx-rtmp-docker/versions -q ".[0].metadata.container.tags.[0]" || true)
                   if [ "$nginx_tag-$rtmp_tag" != "$tag" ]; then
                     echo "SHOULD_BUILD=1" >> $GITHUB_OUTPUT
                     echo "NGINX_TAG=$nginx_tag" >> $GITHUB_OUTPUT
