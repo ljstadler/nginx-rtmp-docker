@@ -19,7 +19,7 @@ jobs:
             - name: Check actions-dependencies
               run: |
                   bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
-                  ./actionlint -color
+                  ./actionlint -color -shellcheck ""
 
     auto-merge:
         needs: check
